@@ -11,15 +11,16 @@ export function App() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [error, setError] = useState<ErrorInfo<Task>>();
 
-  async function addTask(e: FormEvent) {
+  const addTask = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await taskRepo.insert({ title: newTaskTitle });
+      const newTask = await taskRepo.insert({ title: newTaskTitle });
+      setTasks([...tasks, newTask]);
       setNewTaskTitle("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert((error as { message: string }).message);
     }
-  }
+  };
 
   async function setCompleted(task: Task, completed: boolean) {
     await taskRepo.update(task, { completed });
@@ -50,8 +51,14 @@ export function App() {
         orderBy: { createdAt: "asc" },
       })
       .subscribe({
-        next: (info) => setTasks(info.applyChanges),
-        error: setError,
+        next: (info) => {
+          console.log("Datos:", info);
+          setTasks(info.applyChanges);
+        },
+        error: (error) => {
+          console.error("Error en liveQuery: ", error);
+          setError(error as ErrorInfo<Task>);
+        },
       });
   }, []);
 
@@ -59,34 +66,54 @@ export function App() {
     <div>
       <h1>Todo List</h1>
       <main>
-        <form onSubmit={addTask}>
-          <input
-            value={newTaskTitle}
-            placeholder="What needs to be done?"
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-          />
-          <button>Add</button>
-        </form>
+        {taskRepo.metadata.apiInsertAllowed() && (
+          <form onSubmit={addTask}>
+            <input
+              value={newTaskTitle}
+              placeholder="What needs to be done?"
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+            />
+            <button>Add</button>
+          </form>
+        )}
         {error && (
           <div>
             <strong style={{ color: "red" }}>Error: {error.message}</strong>
           </div>
         )}
         {tasks.map((task) => {
+          const setTask = (value: Task) =>
+            setTasks((tasks) => tasks.map((t) => (t === task ? value : t)));
+
+          const setCompleted = async (completed: boolean) =>
+            setTask(await taskRepo.save({ ...task, completed }));
+
+          const setTitle = (title: string) => setTask({ ...task, title });
+
+          const saveTask = async () => {
+            try {
+              setTask(await taskRepo.save(task));
+            } catch (error: unknown) {
+              alert((error as { message: string }).message);
+            }
+          };
           return (
             <div key={task.id}>
               <input
                 type="checkbox"
                 checked={task.completed}
-                onChange={(e) => setCompleted(task, e.target.checked)}
+                onChange={(e) => setCompleted(e.target.checked)}
               />
-              {task.title}
-              <button
-                onClick={() => deleteTask(task)}
-                style={{ marginLeft: "auto" }}
-              >
-                Delete
-              </button>
+              <input value={task.title} onChange={e=> setTitle(e.target.value)} />
+              <button onClick={() => saveTask()}>Save</button>
+              {taskRepo.metadata.apiDeleteAllowed(task) && (
+                <button
+                  onClick={() => deleteTask(task)}
+                  style={{ marginLeft: "auto" }}
+                >
+                  Delete
+                </button>
+              )}
             </div>
           );
         })}

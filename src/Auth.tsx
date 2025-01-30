@@ -1,41 +1,42 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { remult, type UserInfo } from "remult";
-import {App }from "./App";
-import { AuthController } from "./shared/AuthController";
+import { App } from "./App";
 
 export default function Auth() {
   const [username, setUserName] = useState("");
-  const [currentUser, _setCurrentUser] = useState<UserInfo>()
-
-  function setCurrentUser(user: UserInfo | undefined) {
-    _setCurrentUser(user)
-    remult.user = user
-  }
-
-  async function signIn(f: FormEvent<HTMLFormElement>) {
-    f.preventDefault();
-    try {
-        setCurrentUser( await AuthController.signIn(username))
-    } catch (error: unknown) {
-      alert((error as { message: string }).message || "Error al iniciar sesion");
-    }
-  }
-
-  async function signOut() {
-    setCurrentUser(await AuthController.signOut())
-  }
-
+  const [signedIn, setSignedIn] = useState(false);
+  
   useEffect(() => {
-    setCurrentUser(remult.user)
+    fetch("/api/currentUser").then(async (result) => {
+      remult.user = await result.json();
+      if (remult.user) setSignedIn(true);
+    });
   }, []);
+  
+  if (!signedIn) {
+    async function doSignIn(e: FormEvent<HTMLFormElement>) {
+      e.preventDefault();
+      const result = await fetch("/api/signIn", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username }),
+      });
+      if (result.ok) {
+        remult.user = await result.json();
+        setSignedIn(true);
+        setUserName("");
+      } else {
+        alert(await result.json());
+      }
+    }
 
-  if (!currentUser)
     return (
       <>
-        <main className="sign-in">
-        <h2>Sign In</h2>
-          <form onSubmit={signIn}>
-            <label>User</label>
+        <h1>Todos</h1>
+        <main>
+          <form onSubmit={(e) => doSignIn(e)}>
             <input
               value={username}
               onChange={(e) => setUserName(e.target.value)}
@@ -46,11 +47,19 @@ export default function Auth() {
         </main>
       </>
     );
+  }
+  async function signOut() {
+    await fetch("/api/signOut", { method: "POST" });
+    setSignedIn(false);
+    remult.user = undefined;
+  }
+
   return (
     <>
-      <div>
-        Hello, {currentUser?.name} <button onClick={signOut}>Sign out</button>
-      </div>
+      <header>
+        Hello, {remult.user!.name}{" "}
+        <button onClick={(e) => signOut()}>Sign out</button>
+      </header>
       <App />
     </>
   );

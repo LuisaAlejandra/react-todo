@@ -1,48 +1,48 @@
-import { BackendMethod, remult } from 'remult'
-import type express from 'express'
-// import type from 'cookie-session'
+import { BackendMethod, remult } from "remult";
+import type express from "express";
 
-declare module 'remult' {
+declare module "remult" {
   export interface RemultContext {
-    request?: express.Request
+    request?: express.Request;
   }
 }
 
-const validUsers = [{name: 'Jungkook'}, {name: 'Ale'}]
+const validUsers = [
+  {
+    name: "Jungkook",
+    admin: true,
+  },
+  {
+    name: "Ale",
+    admin: false
+  },
+];
 
 export class AuthController {
-  @BackendMethod({allowed: true})
+  @BackendMethod({ allowed: true })
   static async signIn(name: string) {
-    const user = validUsers.find((user) => user.name === name)
+    const user = validUsers.find((user) => user.name === name);
     if (user) {
       const userInfo = {
         id: user.name,
-        name: user.name
+        name: user.name,
+        roles: user.admin ? ["admin"] : []
+      };
+      console.log('Usuario autenticado:', userInfo);
+      if (remult.context.request) {
+        remult.context.request.session!["user"] = userInfo;
       }
-      remult.user = userInfo;
-
-      if(remult.context.request) {
-        remult.context.request.session = {user: userInfo}
-      }
- 
-
-      return userInfo
+      return userInfo;
     } else {
-      throw Error("Invalid user, try 'Jungkook' or 'Ale'")
+      throw new Error("Invalid user, try 'Jungkook' or 'Ale'");
     }
   }
 
-  @BackendMethod({allowed: true})
+  @BackendMethod({ allowed: true })
   static async signOut() {
-
-    if(remult.context.request){
-      delete remult.context.request.session;
+    if (remult.context.request) {
+      remult.context.request.session!["user"] = undefined;
     }
-    remult.user = undefined
-
-    return undefined
-
-    // remult.context.request!.session = null
-    // return undefined
+    return undefined;
   }
 }
