@@ -8,8 +8,8 @@ import { Allow, Entity, Fields } from "remult";
     // allowApiRead: Allow.authenticated
 })
 export class Task {
-    @Fields.cuid()
-    id = ''
+    @Fields.autoIncrement()
+    id = 0
 
     @Fields.string<Task>({
         required: true,

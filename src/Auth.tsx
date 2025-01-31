@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { remult, type UserInfo } from "remult";
+import { remult } from "remult";
 import { App } from "./App";
 
 export default function Auth() {
@@ -12,7 +12,7 @@ export default function Auth() {
       if (remult.user) setSignedIn(true);
     });
   }, []);
-  
+
   if (!signedIn) {
     async function doSignIn(e: FormEvent<HTMLFormElement>) {
       e.preventDefault();
@@ -58,7 +58,7 @@ export default function Auth() {
     <>
       <header>
         Hello, {remult.user!.name}{" "}
-        <button onClick={(e) => signOut()}>Sign out</button>
+        <button onClick={() => signOut()}>Sign out</button>
       </header>
       <App />
     </>

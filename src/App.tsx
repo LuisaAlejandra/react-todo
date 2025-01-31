@@ -7,7 +7,7 @@ import { TaskController } from "./shared/TasksController";
 const taskRepo = repo(Task); //Conexión con el repositorio de tareas
 
 export function App() {
-  const [tasks, setTasks] = useState<Task[]>([]); //State para almacenar los todos
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [error, setError] = useState<ErrorInfo<Task>>();
 
@@ -21,10 +21,6 @@ export function App() {
       alert((error as { message: string }).message);
     }
   };
-
-  async function setCompleted(task: Task, completed: boolean) {
-    await taskRepo.update(task, { completed });
-  }
 
   async function deleteTask(task: Task) {
     try {
